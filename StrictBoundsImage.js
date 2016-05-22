@@ -145,7 +145,7 @@ StrictBoundsImage.prototype.recalculateMinZoom = function(){
 		}
 	}
 
-	if(map.getZoom() < min_zoom) map.setZoom(min_zoom);
+	if(this.map_.getZoom() < min_zoom) this.map_.setZoom(min_zoom);
 	this.map_.setOptions({minZoom: min_zoom});
 };
 
