@@ -2,8 +2,10 @@
 ### Strict Bounds Custom Overlay for Google Maps Js API v3.
 
 A StrictBoundsImage acts like a regular overlay, with added features:
+
 1. Map View cannot be panned out of bounds of the overlay
 2. It can automatically detect the minimal map zoom level such that the map view is fully contained within bounds of the image
+
 The library is based on the Google Maps JS API v3 "Adding a Custom Overlay" example: https://developers.google.com/maps/documentation/javascript/examples/overlay-simple
 
 Example usage (the image is reused from the above mentioned example): 
