@@ -1,3 +1,32 @@
+/**
+ * @name StrictBoundsImage
+ * @version 1.0 [May 22, 2016]
+ * @author Matej Pavla (based on the Google Maps JS API v3 "Adding a Custom Overlay" example: https://developers.google.com/maps/documentation/javascript/examples/overlay-simple)
+ * @copyright Copyright 2016 Matej Pavla
+ * @fileoverview StrictBoundsImage extends the Google Maps JavaScript API V3 <tt>OverlayView</tt> class.
+ *  <p>
+ *  A StrictBoundsImage acts like a regular overlay, with added features:
+ *     1. Map View cannot be panned out of bounds of the overlay
+ *     2. It can automatically detect the minimal map zoom level such that the map view is fully contained within bounds of the image
+ *  <p>
+ */
+
+/*!
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *       http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+
 function StrictBoundsImage(bounds, image_url, map, min_zoom_level) {
 	this.bounds_ = bounds;
 	this.map_ = null;
@@ -20,7 +49,7 @@ function StrictBoundsImage(bounds, image_url, map, min_zoom_level) {
 StrictBoundsImage.prototype = new google.maps.OverlayView;
 
 /**
- * If the map view is out of bounds, reposition it back
+ * This function checks if the map view is out of image bounds and if yes, it will reposition it back into bounds
  */
 StrictBoundsImage.prototype.repositionToBounds = function(){
 	if(this.map_) {
@@ -35,12 +64,10 @@ StrictBoundsImage.prototype.repositionToBounds = function(){
 			m_min_y = this.map_.getBounds().getSouthWest().lat(),
 			overlay_projection = this.getProjection(),
 			center = this.map_.getCenter(),
-			wiggle = 1;
+			wiggle = 5;
 
 		if(m_max_x > max_x || m_max_y > max_y || m_min_x < min_x || m_min_y < min_y){
 
-			console.log(m_max_x > max_x , m_max_y > max_y , m_min_x < min_x , m_min_y < min_y);
-			console.log('out of bounds!', 'm_max_x',m_max_x, 'max_x',max_x , 'm_max_y',m_max_y , 'max_y',max_y , 'm_min_x',m_min_x , 'min_x', min_x , 'm_min_y', m_min_y, 'min_y', min_y);
 			var center_point_px = overlay_projection.fromLatLngToDivPixel(center);
 			if(m_max_x > max_x){
 
@@ -85,10 +112,10 @@ StrictBoundsImage.prototype.repositionToBounds = function(){
  * More about scale used: http://gis.stackexchange.com/questions/111584/what-is-the-significance-of-591657550-5-as-it-relates-to-google-maps-scaling-fac
  */
 StrictBoundsImage.prototype.recalculateMinZoom = function(){
-	console.log('FIRED');
 	var min_zoom = 1;
 	var max_zoom = 30;
-
+	
+	//if the desired zoom level is defined in constructor, use that instead of calculating it
 	if(this.min_zoom_level_ !== null){
 
 		min_zoom = this.min_zoom_level_;
@@ -105,21 +132,7 @@ StrictBoundsImage.prototype.recalculateMinZoom = function(){
 			var overlayProjection = this.getProjection();
 			var ratio;
 
-			/*//first find zoom where map view will be fully contained within earth map bounds
-			var sw = overlayProjection.fromLatLngToDivPixel(new google.maps.LatLng(0, 0));
-			var ne = overlayProjection.fromLatLngToDivPixel(new google.maps.LatLng(180, 180));
-			var width = Math.abs(sw.x - ne.x) * 2;
-			var height = Math.abs(sw.y - ne.y) * 2;
-			console.log(width, height, sw, ne);
-			min_zoom = 0;
-			do{
-				min_zoom++;
-				ratio = (591657550.500000 / Math.pow(2, min_zoom - 1)) / current_zoom_scale;
-				console.log('min_zoom', min_zoom, 'ratio', ratio, 'w', ratio * width, 'h', ratio * height);
-			}while(min_zoom <= max_zoom && width * ratio > map_div_width && height * ratio > map_div_height);
-			console.log('earth on ',min_zoom);*/
-
-			//find a zoom where map view is fully contained within our bounds
+			//find a zoom level where map view is fully contained within our bounds
 			var sw = overlayProjection.fromLatLngToDivPixel(this.bounds_.getSouthWest());
 			var ne = overlayProjection.fromLatLngToDivPixel(this.bounds_.getNorthEast());
 			var width = Math.abs(sw.x - ne.x);
@@ -132,7 +145,6 @@ StrictBoundsImage.prototype.recalculateMinZoom = function(){
 		}
 	}
 
-	console.log('min zoom is:', min_zoom);
 	if(map.getZoom() < min_zoom) map.setZoom(min_zoom);
 	this.map_.setOptions({minZoom: min_zoom});
 };
@@ -162,6 +174,7 @@ StrictBoundsImage.prototype.onAdd = function() {
 	var panes = this.getPanes();
 	panes.overlayLayer.appendChild(div);
 
+	//After adding the image, let's set map center to the image center and calculate the min zoom level required to contain map view inside the image's bounds
 	this.map_.setCenter(this.bounds_.getCenter());
 	this.recalculateMinZoom();
 
@@ -173,17 +186,17 @@ StrictBoundsImage.prototype.onAdd = function() {
 		if(bounds_changed_throttle) clearTimeout(bounds_changed_throttle);
 		bounds_changed_throttle = setTimeout(function(){
 			me.repositionToBounds();
-		}, 25);
+		}, 5);
 	});
 
 	//When map is resized, the minimal zoom level required to contain map view inside the image's bounds might change, so let's recalculate it
-	/*var map_resized_throttle = null;
+	var map_resized_throttle = null;
 	this.map_resize_listener_ = google.maps.event.addListener(this.map_, 'resize', function(){
 		if(map_resized_throttle) clearTimeout(map_resized_throttle);
 		map_resized_throttle = setTimeout(function(){
 			me.recalculateMinZoom();
 		}, 100);
-	});*/
+	});
 };
 
 StrictBoundsImage.prototype.draw = function() {
