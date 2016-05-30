@@ -53,7 +53,6 @@ StrictBoundsImage.prototype = new google.maps.OverlayView;
  */
 StrictBoundsImage.prototype.repositionToBounds = function(){
 	if(this.map_) {
-
 		var max_x = this.bounds_.getNorthEast().lng(),
 			max_y = this.bounds_.getNorthEast().lat(),
 			min_x = this.bounds_.getSouthWest().lng(),
@@ -101,8 +100,10 @@ StrictBoundsImage.prototype.repositionToBounds = function(){
 			}
 
 			this.map_.setCenter(center);
+			return true;
 		}
 	}
+	return false;
 };
 
 /**
@@ -114,7 +115,7 @@ StrictBoundsImage.prototype.repositionToBounds = function(){
 StrictBoundsImage.prototype.recalculateMinZoom = function(){
 	var min_zoom = 1;
 	var max_zoom = 30;
-	
+
 	//if the desired zoom level is defined in constructor, use that instead of calculating it
 	if(this.min_zoom_level_ !== null){
 
@@ -181,12 +182,13 @@ StrictBoundsImage.prototype.onAdd = function() {
 	//Attach some event listeners. Introduced throttling for better performance
 	//When the map bounds change, we listen for the event and if we move out of the bounds, we will adjust the map to the nearest bounds
 	var me = this;
-	var bounds_changed_throttle = null;
 	this.bounds_changed_listener_ = google.maps.event.addListener(this.map_, 'center_changed', function(){
-		if(bounds_changed_throttle) clearTimeout(bounds_changed_throttle);
-		bounds_changed_throttle = setTimeout(function(){
-			me.repositionToBounds();
-		}, 5);
+		if(me.repositionToBounds()) { //for smoothness
+			me.map_.setOptions({draggable: false});
+			setTimeout(function () {
+				me.map_.setOptions({draggable: true});
+			}, 250);
+		}
 	});
 
 	//When map is resized, the minimal zoom level required to contain map view inside the image's bounds might change, so let's recalculate it
